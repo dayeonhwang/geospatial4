@@ -3,6 +3,9 @@
 ## Mac file
 .DS_Store
 
+## Data
+results/
+
 ## User settings
 xcuserdata/
 

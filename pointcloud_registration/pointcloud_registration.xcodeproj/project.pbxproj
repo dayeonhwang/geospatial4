@@ -218,6 +218,36 @@
 		7228CF3F20C601A20051313E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"/usr/local/Cellar/pcl/1.8.1_3/include/pcl-1.8",
+					/usr/local/Cellar/eigen/3.3.4/include/eigen3,
+					/usr/local/Cellar/boost/1.67.0_1/include,
+					"/usr/local/Cellar/vtk/8.1.0_2/include/vtk-8.1",
+					/usr/local/Cellar/flann/1.9.1_4/include,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/Cellar/pcl/1.8.1_3/lib,
+					/usr/local/Cellar/boost/1.67.0_1/lib,
+					/usr/local/Cellar/vtk/8.1.0_2/lib,
+					/usr/local/Cellar/flann/1.9.1_4/lib,
+				);
+				OTHER_LDFLAGS = (
+					"-lpcl_common",
+					"-lpcl_sample_consensus",
+					"-lpcl_search",
+					"-lpcl_kdtree",
+					"-lflann",
+					"-lflann_cpp",
+					"-lpcl_octree",
+					"-lpcl_io",
+					"-lpcl_visualization",
+					"-lboost_system",
+					"-lpcl_keypoints",
+					"-lpcl_ml",
+					"-lpcl_features",
+					"-lpcl_filters",
+					"-lpcl_segmentation",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -225,6 +255,36 @@
 		7228CF4020C601A20051313E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"/usr/local/Cellar/pcl/1.8.1_3/include/pcl-1.8",
+					/usr/local/Cellar/eigen/3.3.4/include/eigen3,
+					/usr/local/Cellar/boost/1.67.0_1/include,
+					"/usr/local/Cellar/vtk/8.1.0_2/include/vtk-8.1",
+					/usr/local/Cellar/flann/1.9.1_4/include,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/Cellar/pcl/1.8.1_3/lib,
+					/usr/local/Cellar/boost/1.67.0_1/lib,
+					/usr/local/Cellar/vtk/8.1.0_2/lib,
+					/usr/local/Cellar/flann/1.9.1_4/lib,
+				);
+				OTHER_LDFLAGS = (
+					"-lpcl_common",
+					"-lpcl_sample_consensus",
+					"-lpcl_search",
+					"-lpcl_kdtree",
+					"-lflann",
+					"-lflann_cpp",
+					"-lpcl_octree",
+					"-lpcl_io",
+					"-lpcl_visualization",
+					"-lboost_system",
+					"-lpcl_keypoints",
+					"-lpcl_ml",
+					"-lpcl_features",
+					"-lpcl_filters",
+					"-lpcl_segmentation",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

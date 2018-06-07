@@ -27,8 +27,9 @@ if __name__ == '__main__':
     h0 = data[0][2]
     for i in range(num_points):
         point = data[i]
-        x, y, z = pm.geodetic2ned(point[0], point[1], point[2], lat0, lon0, h0)
-        row = str(x) + ' ' + str(y) + ' ' + str(z) + ' ' + str(int(point[3]) + '\n'
+        # x, y, z = pm.geodetic2ned(point[0], point[1], point[2], lat0, lon0, h0)
+        x, y , z = pm.geodetic2ecef(point[0], point[1], point[2])
+        row = str(x) + ' ' + str(y) + ' ' + str(z) + ' ' + str(int(point[3])) + '\n'
         ply.write(row)
     ply.close()
     fuse.close()

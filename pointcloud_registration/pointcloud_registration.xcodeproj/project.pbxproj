@@ -11,6 +11,7 @@
 		7285C3CA20C9B7B500EA3AF4 /* keypoints.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7285C3C820C9B7B500EA3AF4 /* keypoints.cpp */; };
 		7285C3D120C9B80C00EA3AF4 /* ICP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7285C3CF20C9B80C00EA3AF4 /* ICP.cpp */; };
 		7285C3D420C9B88200EA3AF4 /* utilities.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7285C3D220C9B88200EA3AF4 /* utilities.cpp */; };
+		7285C3D720CC7FAD00EA3AF4 /* descriptors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7285C3D520CC7FAD00EA3AF4 /* descriptors.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -34,6 +35,8 @@
 		7285C3D020C9B80C00EA3AF4 /* ICP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ICP.hpp; sourceTree = "<group>"; };
 		7285C3D220C9B88200EA3AF4 /* utilities.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utilities.cpp; sourceTree = "<group>"; };
 		7285C3D320C9B88200EA3AF4 /* utilities.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = utilities.hpp; sourceTree = "<group>"; };
+		7285C3D520CC7FAD00EA3AF4 /* descriptors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = descriptors.cpp; sourceTree = "<group>"; };
+		7285C3D620CC7FAD00EA3AF4 /* descriptors.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = descriptors.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +76,8 @@
 				7285C3C920C9B7B500EA3AF4 /* keypoints.hpp */,
 				7285C3D220C9B88200EA3AF4 /* utilities.cpp */,
 				7285C3D320C9B88200EA3AF4 /* utilities.hpp */,
+				7285C3D520CC7FAD00EA3AF4 /* descriptors.cpp */,
+				7285C3D620CC7FAD00EA3AF4 /* descriptors.hpp */,
 			);
 			path = pointcloud_registration;
 			sourceTree = "<group>";
@@ -136,6 +141,7 @@
 			files = (
 				7285C3D120C9B80C00EA3AF4 /* ICP.cpp in Sources */,
 				7285C3CA20C9B7B500EA3AF4 /* keypoints.cpp in Sources */,
+				7285C3D720CC7FAD00EA3AF4 /* descriptors.cpp in Sources */,
 				7285C3D420C9B88200EA3AF4 /* utilities.cpp in Sources */,
 				7228CF3B20C601A20051313E /* main.cpp in Sources */,
 			);

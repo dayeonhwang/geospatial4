@@ -13,10 +13,11 @@
 #include "keypoints.hpp"
 #include "ICP.hpp"
 #include "utilities.hpp"
+#include "descriptors.hpp"
 
 
 enum keypoint_t {ISS, SIFT, HARRIS};
-enum descriptor_t {ICP, FPFH, IS};
+enum descriptor_t {FPFH, IS, NONE};
 
 using namespace pcl;
 using namespace std;
@@ -27,7 +28,7 @@ int main(int argc, const char * argv[]) {
     string targetFilename = "../../../../point_cloud_registration1/pointcloud2_ned.ply";
     string resultsDirectory = "../../../results/";
     keypoint_t keypoint = ISS;
-    descriptor_t descriptor = ICP;
+    descriptor_t descriptor = FPFH;
     
     // Parse arguments
     if (argc > 1) {
@@ -63,11 +64,6 @@ int main(int argc, const char * argv[]) {
         return (-1);
     }
     
-    // Initialize alignment variables
-    PointCloud<PointXYZ>::Ptr source_keypoints_aligned (new PointCloud<PointXYZ>);
-    PointCloud<PointXYZ>::Ptr source_aligned (new PointCloud<PointXYZ>);
-    Eigen::Matrix4f T;
-    
     // Initialize clock
     clock_t start;
     double duration;
@@ -82,32 +78,78 @@ int main(int argc, const char * argv[]) {
             computeISSKeypoints(source, source_keypoints);
             computeISSKeypoints(target, target_keypoints);
         }
+        case SIFT: {
+            ;
+        }
+        case HARRIS: {
+            ;
+        }
     }
     // Save keypoints
     io::savePLYFileBinary(resultsDirectory + "source_keypoints.ply", *source_keypoints);
     io::savePLYFileBinary(resultsDirectory + "target_keypoints.ply", *target_keypoints);
     
+    pcl::PointCloud<pcl::Normal> source_normals;
+    pcl::PointCloud<pcl::Normal> target_normals;
+    
+    // Compute normals
+    computeNormals(source_keypoints, source_normals);
+    computeNormals(target_keypoints, target_normals);
+    
+    // Perform initial alignment
+    PointCloud<PointXYZ>::Ptr source_keypoints_ia (new PointCloud<PointXYZ>);
+    Eigen::Matrix4f T_initial;
+    double fit_score_ia;
+    cout << "Performing Initial Alignment..." << endl;
     switch (descriptor)
     {
-        case ICP: {
-            // Perform ICP
-            computeICPAlignment(source_keypoints, target_keypoints, source_keypoints_aligned, T);
-            break;
-        }
         case FPFH: {
+            pcl::PointCloud<pcl::FPFHSignature33> source_features, target_features;
+            computeFPFHFeatures(source_keypoints, source_normals, source_features);
+            computeFPFHFeatures(target_keypoints, target_normals, target_features);
+            
+            SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::FPFHSignature33> reg;
+            reg.setMinSampleDistance (0.05f);
+            reg.setMaxCorrespondenceDistance (0.05);
+            reg.setMaximumIterations (20000);
+            pcl::registration::CorrespondenceRejectorSampleConsensus<pcl::PointXYZ>::Ptr rej_samp (new pcl::registration::CorrespondenceRejectorSampleConsensus<pcl::PointXYZ>);
+            reg.addCorrespondenceRejector(rej_samp);
+            reg.setEuclideanFitnessEpsilon(0.0001);
+            reg.setInputCloud (source_keypoints);
+            reg.setInputTarget (target_keypoints);
+            reg.setSourceFeatures (source_features.makeShared());
+            reg.setTargetFeatures (target_features.makeShared());
+            reg.align (*source_keypoints_ia);
+            T_initial = reg.getFinalTransformation();
+            fit_score_ia = reg.getFitnessScore();
+            
             break;
         }
         case IS: {
             
             break;
         }
+        case NONE: {
+            fit_score_ia = 0.0;
+            copyPointCloud(*source_keypoints, *source_keypoints_ia);
+        }
     }
+    
+    cout << "Initial Fitness Score:" << fit_score_ia << endl;
+    cout << "Performing ICP Refinement..." << endl;
+    // Refine with ICP
+    PointCloud<PointXYZ>::Ptr source_keypoints_aligned (new PointCloud<PointXYZ>);
+    Eigen::Matrix4f T_ICP;
+    computeICPAlignment(source_keypoints_ia, target_keypoints, source_keypoints_aligned, T_ICP, 20000);
+    
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
     cout << "Computation time: " << duration << "\n";
     
-    
+    // Save aligned source clouds
     io::savePLYFileBinary(resultsDirectory + "source_keypoints_aligned.ply", *source_keypoints_aligned);
-    transformPointCloud(*source, *source_aligned, T);
+    PointCloud<PointXYZ>::Ptr source_aligned (new PointCloud<PointXYZ>);
+    Eigen::Matrix4f T_final = T_initial * T_ICP;
+    transformPointCloud(*source, *source_aligned, T_final);
     io::savePLYFileBinary(resultsDirectory + "source_aligned.ply", *source_aligned);
     return 0;
 }

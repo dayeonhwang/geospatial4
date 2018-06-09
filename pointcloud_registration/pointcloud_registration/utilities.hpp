@@ -18,6 +18,12 @@
 #include <pcl/registration/icp_nl.h>
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/keypoints/iss_3d.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/features/fpfh.h>
+#include <pcl/features/ppf.h>
+#include <pcl/registration/ia_ransac.h>
+#include <pcl/registration/correspondence_rejection_sample_consensus.h>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 

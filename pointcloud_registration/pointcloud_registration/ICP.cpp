@@ -8,9 +8,9 @@
 
 #include "ICP.hpp"
 
-void computeICPAlignment(const pcl::PointCloud<pcl::PointXYZ>::Ptr &source, const pcl::PointCloud<pcl::PointXYZ>::Ptr &target, pcl::PointCloud<pcl::PointXYZ>::Ptr &source_aligned, Eigen::Matrix4f &T) {
+void computeICPAlignment(const pcl::PointCloud<pcl::PointXYZ>::Ptr &source, const pcl::PointCloud<pcl::PointXYZ>::Ptr &target, pcl::PointCloud<pcl::PointXYZ>::Ptr &source_aligned, Eigen::Matrix4f &T, int num_iter) {
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-    icp.setMaximumIterations(ITER);
+    icp.setMaximumIterations(num_iter);
     icp.setMaxCorrespondenceDistance(CORR_DIST);
     icp.setRANSACOutlierRejectionThreshold(RANSAC_DIST);
     icp.setEuclideanFitnessEpsilon(CONV_EPS);

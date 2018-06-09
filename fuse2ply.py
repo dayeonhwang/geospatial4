@@ -22,9 +22,9 @@ if __name__ == '__main__':
         + 'property list uchar int vertex_indices\nend_header\n'
     ply.write(header)
     # Convert each point from WGS48 to NED and store in file
-    lat0 = data[0][0]
-    lon0 = data[0][1]
-    h0 = data[0][2]
+    lat0 = 48.858858
+    lon0 = 2.299525
+    h0 = 76.995310
     for i in range(num_points):
         point = data[i]
         x, y, z = pm.geodetic2ned(point[0], point[1], point[2], lat0, lon0, h0)

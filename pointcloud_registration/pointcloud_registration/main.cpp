@@ -15,8 +15,8 @@
 #include "utilities.hpp"
 
 
-
-enum method_t {ICP, ISS, FPFH};
+enum keypoint_t {ISS, SIFT, HARRIS};
+enum descriptor_t {ICP, FPFH, IS};
 
 using namespace pcl;
 using namespace std;
@@ -26,7 +26,8 @@ int main(int argc, const char * argv[]) {
     string sourceFilename = "../../../../point_cloud_registration1/pointcloud1_ned.ply";
     string targetFilename = "../../../../point_cloud_registration1/pointcloud2_ned.ply";
     string resultsDirectory = "../../../results/";
-    method_t method = ICP;
+    keypoint_t keypoint = ISS;
+    descriptor_t descriptor = ICP;
     
     // Parse arguments
     if (argc > 1) {
@@ -38,8 +39,10 @@ int main(int argc, const char * argv[]) {
                 targetFilename = argv[++i];
             } else if (arg == "-r") {
                 resultsDirectory = argv[++i];
-            } else if (arg == "-m") {
-                method = (method_t) *argv[++i];
+            } else if (arg == "-k") {
+                keypoint = (keypoint_t) *argv[++i];
+            } else if (arg == "-d") {
+                descriptor = (descriptor_t) *argv[++i];
             } else {
                 std::cerr << "Unknown argument" << std::endl;
             }
@@ -70,25 +73,32 @@ int main(int argc, const char * argv[]) {
     double duration;
     
     start = clock();
-    switch (method)
-    {
-        case ICP: {
-            // Find keypoints
-            PointCloud<PointXYZ>::Ptr source_keypoints (new PointCloud<PointXYZ>);
-            PointCloud<PointXYZ>::Ptr target_keypoints (new PointCloud<PointXYZ>);
+    
+    // Find keypoints
+    PointCloud<PointXYZ>::Ptr source_keypoints (new PointCloud<PointXYZ>);
+    PointCloud<PointXYZ>::Ptr target_keypoints (new PointCloud<PointXYZ>);
+    switch (keypoint){
+        case ISS: {
             computeISSKeypoints(source, source_keypoints);
             computeISSKeypoints(target, target_keypoints);
-            io::savePLYFileBinary(resultsDirectory + "source_keypoints.ply", *source_keypoints);
-            io::savePLYFileBinary(resultsDirectory + "target_keypoints.ply", *target_keypoints);
+        }
+    }
+    // Save keypoints
+    io::savePLYFileBinary(resultsDirectory + "source_keypoints.ply", *source_keypoints);
+    io::savePLYFileBinary(resultsDirectory + "target_keypoints.ply", *target_keypoints);
+    
+    switch (descriptor)
+    {
+        case ICP: {
             // Perform ICP
-
             computeICPAlignment(source_keypoints, target_keypoints, source_keypoints_aligned, T);
             break;
         }
-        case ISS: {
+        case FPFH: {
             break;
         }
-        case FPFH: {
+        case IS: {
+            
             break;
         }
     }

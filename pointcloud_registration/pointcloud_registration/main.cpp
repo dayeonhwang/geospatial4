@@ -23,11 +23,10 @@ using namespace std;
 
 int main(int argc, const char * argv[]) {
     // Initialize arguments
-    string sourceFilename = "../../../../point_cloud_registration1/pointcloud1.ply";
-    string targetFilename = "../../../../point_cloud_registration1/pointcloud2.ply";
+    string sourceFilename = "../../../../point_cloud_registration1/pointcloud1_ned.ply";
+    string targetFilename = "../../../../point_cloud_registration1/pointcloud2_ned.ply";
     string resultsDirectory = "../../../results/";
     method_t method = ICP;
-    int method_int;
     
     // Parse arguments
     if (argc > 1) {
@@ -61,7 +60,10 @@ int main(int argc, const char * argv[]) {
         return (-1);
     }
     
+    // Initialize alignment variables
+    PointCloud<PointXYZ>::Ptr source_keypoints_aligned (new PointCloud<PointXYZ>);
     PointCloud<PointXYZ>::Ptr source_aligned (new PointCloud<PointXYZ>);
+    Eigen::Matrix4f T;
     
     // Initialize clock
     clock_t start;
@@ -76,10 +78,11 @@ int main(int argc, const char * argv[]) {
             PointCloud<PointXYZ>::Ptr target_keypoints (new PointCloud<PointXYZ>);
             computeISSKeypoints(source, source_keypoints);
             computeISSKeypoints(target, target_keypoints);
-            
+            io::savePLYFileBinary(resultsDirectory + "source_keypoints.ply", *source_keypoints);
+            io::savePLYFileBinary(resultsDirectory + "target_keypoints.ply", *target_keypoints);
             // Perform ICP
-            Eigen::Matrix4f T;
-            computeICPAlignment(source_keypoints, target_keypoints, source_aligned, T);
+
+            computeICPAlignment(source_keypoints, target_keypoints, source_keypoints_aligned, T);
             break;
         }
         case ISS: {
@@ -91,7 +94,10 @@ int main(int argc, const char * argv[]) {
     }
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
     cout << "Computation time: " << duration << "\n";
-    io::savePLYFileBinary(resultsDirectory + "source_aligned.ply", *source_aligned);
     
+    
+    io::savePLYFileBinary(resultsDirectory + "source_keypoints_aligned.ply", *source_keypoints_aligned);
+    transformPointCloud(*source, *source_aligned, T);
+    io::savePLYFileBinary(resultsDirectory + "source_aligned.ply", *source_aligned);
     return 0;
 }

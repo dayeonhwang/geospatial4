@@ -42,8 +42,8 @@ double computeCloudResolution (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &c
 
 void computeISSKeypoints(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &keypoints) {
     double model_res = computeCloudResolution(cloud);
-    double salient_radius = 6 * model_res;
-    double nms_radius = 4 * model_res;
+    double salient_radius = 6 * model_res; //6
+    double nms_radius = 4 *  model_res; //4
     double gamma_21 = 0.975;
     double gamma_32 = 0.975;
     double min_neighbors = 5;

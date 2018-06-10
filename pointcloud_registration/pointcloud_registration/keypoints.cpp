@@ -42,6 +42,13 @@ double computeCloudResolution (const pcl::PointCloud<pcl::PointXYZI>::ConstPtr &
     return res;
 }
 
+void extractIndices(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr &result, pcl::PointIndicesConstPtr indices) {
+    pcl::ExtractIndices<pcl::PointXYZI> extract;
+    extract.setInputCloud(cloud);
+    extract.setIndices(indices);
+    extract.filter(*result);
+}
+
 void computeISSKeypoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr &keypoints) {
     double model_res = computeCloudResolution(cloud);
     double salient_radius = 6 * model_res; //6
@@ -60,32 +67,42 @@ void computeISSKeypoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl:
     iss_detector.setThreshold32 (gamma_32);
     iss_detector.setMinNeighbors (min_neighbors);
     iss_detector.setInputCloud (cloud);
-    iss_detector.compute (*keypoints);
+    pcl::PointCloud<pcl::PointXYZI> buffer;
+    iss_detector.compute (buffer);
+    pcl::PointIndicesConstPtr keypoint_indices = iss_detector.getKeypointsIndices();
+    extractIndices(cloud, keypoints, keypoint_indices);
 }
 
 void computeSIFTKeypoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr &keypoints) {
-    const float min_scale = 0.005f;
+    const float min_scale = 0.05f;
     const int n_octaves = 6;
     const int n_scales_per_octave = 4;
-    const float min_contrast = 0.005f;
+    const float min_contrast = 0.05f;
     pcl::PointCloud<pcl::PointNormal>::Ptr cloud_normals (new pcl::PointCloud<pcl::PointNormal>);
     pcl::SIFTKeypoint<pcl::PointXYZI, pcl::PointXYZI> sift;
     pcl::PointCloud<pcl::PointWithScale> result;
-    pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ> ());
+    pcl::search::KdTree<pcl::PointXYZI>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZI>);
     sift.setSearchMethod(tree);
     sift.setScales(min_scale, n_octaves, n_scales_per_octave);
     sift.setMinimumContrast(min_contrast);
     sift.setInputCloud(cloud);
-    sift.compute(*keypoints);
+    pcl::PointCloud<pcl::PointXYZI> buffer;
+    sift.compute (buffer);
+    pcl::PointIndicesConstPtr keypoint_indices = sift.getKeypointsIndices();
+    extractIndices(cloud, keypoints, keypoint_indices);
 }
 
 void computeHARRISKeypoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr &keypoints) {
     double model_res = computeCloudResolution(cloud);
     double nms_radius = 4 *  model_res; //4
+    double threshold = 0.1 * model_res;
     pcl::HarrisKeypoint3D<pcl::PointXYZI, pcl::PointXYZI> harris;
     harris.setNonMaxSupression(true);
     harris.setRadius (nms_radius);
     harris.setInputCloud(cloud);
-    harris.setThreshold(1e-6);
-    harris.compute(*keypoints);
+//    harris.setThreshold(threshold);
+    pcl::PointCloud<pcl::PointXYZI> buffer;
+    harris.compute (buffer);
+    pcl::PointIndicesConstPtr keypoint_indices = harris.getKeypointsIndices();
+    extractIndices(cloud, keypoints, keypoint_indices);
 }

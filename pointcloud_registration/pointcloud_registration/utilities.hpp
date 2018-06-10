@@ -9,6 +9,7 @@
 #ifndef utilities_hpp
 #define utilities_hpp
 
+//#define PCL_NO_PRECOMPILE
 #include <stdio.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
@@ -23,6 +24,13 @@
 #include <pcl/features/ppf.h>
 #include <pcl/registration/ia_ransac.h>
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
+#include <pcl/point_cloud.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/features/rift.h>
+#include <pcl/features/spin_image.h>
+#include <pcl/features/intensity_spin.h>
+#include <pcl/features/intensity_gradient.h>
+#include <pcl/kdtree/kdtree_flann.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>

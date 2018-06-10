@@ -28,3 +28,16 @@ void computeFPFHFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, cons
     fpfh_est.setInputNormals (normals->makeShared ());
     fpfh_est.compute (*features);
 }
+
+//void computeISFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<IntensitySpin>::Ptr &features, double search_radius){
+//    pcl::IntensitySpinEstimation<pcl::PointXYZI, IntensitySpin> ispin_est;
+//    pcl::search::KdTree<pcl::PointXYZI>::Ptr treept3 (new pcl::search::KdTree<pcl::PointXYZI> (false));
+//    ispin_est.setSearchMethod (treept3);
+//    ispin_est.setRadiusSearch (search_radius);
+//    ispin_est.setNrDistanceBins (4);
+//    ispin_est.setNrIntensityBins (5);
+//    
+//    ispin_est.setInputCloud (cloud->makeShared ());
+//    pcl::PointCloud<IntensitySpin> ispin_output;
+//    ispin_est.compute (*features);
+//}

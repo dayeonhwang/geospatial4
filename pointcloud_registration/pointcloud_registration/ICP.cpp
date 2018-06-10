@@ -8,8 +8,8 @@
 
 #include "ICP.hpp"
 
-void computeICPAlignment(const pcl::PointCloud<pcl::PointXYZ>::Ptr &source, const pcl::PointCloud<pcl::PointXYZ>::Ptr &target, pcl::PointCloud<pcl::PointXYZ>::Ptr &source_aligned, Eigen::Matrix4f &T, int num_iter) {
-    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+void computeICPAlignment(const pcl::PointCloud<pcl::PointXYZI>::Ptr &source, const pcl::PointCloud<pcl::PointXYZI>::Ptr &target, pcl::PointCloud<pcl::PointXYZI>::Ptr &source_aligned, Eigen::Matrix4f &T, int num_iter) {
+    pcl::IterativeClosestPoint<pcl::PointXYZI, pcl::PointXYZI> icp;
     icp.setMaximumIterations(num_iter);
     icp.setMaxCorrespondenceDistance(CORR_DIST);
     icp.setRANSACOutlierRejectionThreshold(RANSAC_DIST);
@@ -21,5 +21,4 @@ void computeICPAlignment(const pcl::PointCloud<pcl::PointXYZ>::Ptr &source, cons
     icp.getFitnessScore() << std::endl;
     T = icp.getFinalTransformation();
     std::cout << T << std::endl;
-
 }

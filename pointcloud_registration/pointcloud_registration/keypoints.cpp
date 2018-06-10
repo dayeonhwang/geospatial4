@@ -20,7 +20,7 @@ double computeCloudResolution (const pcl::PointCloud<pcl::PointXYZI>::ConstPtr &
     std::vector<float> sqr_distances (2);
     pcl::search::KdTree<pcl::PointXYZI> tree;
     tree.setInputCloud (cloud);
-    
+
     for (size_t i = 0; i < cloud->size (); ++i)
     {
         if (! pcl_isfinite ((*cloud)[i].x))
@@ -49,9 +49,9 @@ void computeISSKeypoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl:
     double gamma_21 = 0.975;
     double gamma_32 = 0.975;
     double min_neighbors = 5;
-    
+
     pcl::search::KdTree<pcl::PointXYZI>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZI>);
-    
+
     pcl::ISSKeypoint3D<pcl::PointXYZI, pcl::PointXYZI> iss_detector;
     iss_detector.setSearchMethod (tree);
     iss_detector.setSalientRadius (salient_radius);

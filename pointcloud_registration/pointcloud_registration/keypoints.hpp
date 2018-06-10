@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include "utilities.hpp"
 
-double computeCloudResolution (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud);
-void computeISSKeypoints(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &keypoints);
+double computeCloudResolution (const pcl::PointCloud<pcl::PointXYZI>::ConstPtr &cloud);
+void computeISSKeypoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr &keypoints);
 
 #endif /* keypoints_hpp */

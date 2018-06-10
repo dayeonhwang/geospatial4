@@ -12,9 +12,9 @@
 #include <stdio.h>
 #include "utilities.hpp"
 
-void computeNormals(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, pcl::PointCloud<pcl::Normal> &normals, double search_radius = 0.05);
+void computeNormals(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<pcl::Normal>::Ptr &normals, double search_radius = 0.05);
 
 
-void computeFPFHFeatures(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, const pcl::PointCloud<pcl::Normal> &normals, pcl::PointCloud<pcl::FPFHSignature33> &features, double search_radius = 0.05);
+void computeFPFHFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, const pcl::PointCloud<pcl::Normal>::Ptr &normals, pcl::PointCloud<pcl::FPFHSignature33>::Ptr &features, double search_radius = 0.05);
 
 #endif /* descriptors_hpp */

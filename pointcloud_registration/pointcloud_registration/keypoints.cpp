@@ -9,13 +9,13 @@
 #include "keypoints.hpp"
 
 // Taken from pcl/doc/tutorials/content/sources/correspondence_grouping/correspondence_grouping.cpp
-double computeCloudResolution (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud) {
+double computeCloudResolution (const pcl::PointCloud<pcl::PointXYZI>::ConstPtr &cloud) {
     double res = 0.0;
     int n_points = 0;
     int nres;
     std::vector<int> indices (2);
     std::vector<float> sqr_distances (2);
-    pcl::search::KdTree<pcl::PointXYZ> tree;
+    pcl::search::KdTree<pcl::PointXYZI> tree;
     tree.setInputCloud (cloud);
     
     for (size_t i = 0; i < cloud->size (); ++i)
@@ -40,7 +40,7 @@ double computeCloudResolution (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &c
 }
 
 
-void computeISSKeypoints(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &keypoints) {
+void computeISSKeypoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr &keypoints) {
     double model_res = computeCloudResolution(cloud);
     double salient_radius = 6 * model_res; //6
     double nms_radius = 4 *  model_res; //4
@@ -48,9 +48,9 @@ void computeISSKeypoints(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, pcl::
     double gamma_32 = 0.975;
     double min_neighbors = 5;
     
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+    pcl::search::KdTree<pcl::PointXYZI>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZI>);
     
-    pcl::ISSKeypoint3D<pcl::PointXYZ, pcl::PointXYZ> iss_detector;
+    pcl::ISSKeypoint3D<pcl::PointXYZI, pcl::PointXYZI> iss_detector;
     iss_detector.setSearchMethod (tree);
     iss_detector.setSalientRadius (salient_radius);
     iss_detector.setNonMaxRadius (nms_radius);

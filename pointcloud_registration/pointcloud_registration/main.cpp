@@ -17,7 +17,7 @@
 
 
 enum keypoint_t {ISS, SIFT, HARRIS};
-enum descriptor_t {FPFH, IS, NONE};
+enum descriptor_t {FPFH, IS, RIFT, NONE};
 
 using namespace pcl;
 using namespace std;
@@ -52,8 +52,8 @@ int main(int argc, const char * argv[]) {
 
     
     // Load point clouds
-    PointCloud<PointXYZ>::Ptr source (new PointCloud<PointXYZ>);
-    PointCloud<PointXYZ>::Ptr target (new PointCloud<PointXYZ>);
+    PointCloud<PointXYZI>::Ptr source (new PointCloud<PointXYZI>);
+    PointCloud<PointXYZI>::Ptr target (new PointCloud<PointXYZI>);
     if (io::loadPLYFile(sourceFilename, *source) == -1) {
         PCL_ERROR ("Couldn't read source file \n");
         return (-1);
@@ -71,8 +71,8 @@ int main(int argc, const char * argv[]) {
     start = clock();
     
     // Find keypoints
-    PointCloud<PointXYZ>::Ptr source_keypoints (new PointCloud<PointXYZ>);
-    PointCloud<PointXYZ>::Ptr target_keypoints (new PointCloud<PointXYZ>);
+    PointCloud<PointXYZI>::Ptr source_keypoints (new PointCloud<PointXYZI>);
+    PointCloud<PointXYZI>::Ptr target_keypoints (new PointCloud<PointXYZI>);
     switch (keypoint){
         case ISS: {
             computeISSKeypoints(source, source_keypoints);
@@ -89,45 +89,72 @@ int main(int argc, const char * argv[]) {
     io::savePLYFileBinary(resultsDirectory + "source_keypoints.ply", *source_keypoints);
     io::savePLYFileBinary(resultsDirectory + "target_keypoints.ply", *target_keypoints);
     
-    pcl::PointCloud<pcl::Normal> source_normals;
-    pcl::PointCloud<pcl::Normal> target_normals;
+    PointCloud<Normal>::Ptr source_normals (new PointCloud<Normal>);
+    PointCloud<Normal>::Ptr target_normals (new PointCloud<Normal>);
     
     // Compute normals
-    computeNormals(source_keypoints, source_normals);
-    computeNormals(target_keypoints, target_normals);
+    computeNormals(source_keypoints, source_normals, 0.1);
+    computeNormals(target_keypoints, target_normals, 0.1);
     
     // Perform initial alignment
-    PointCloud<PointXYZ>::Ptr source_keypoints_ia (new PointCloud<PointXYZ>);
+    PointCloud<PointXYZI>::Ptr source_keypoints_ia (new PointCloud<PointXYZI>);
     Eigen::Matrix4f T_initial;
     double fit_score_ia;
     cout << "Performing Initial Alignment..." << endl;
     switch (descriptor)
     {
         case FPFH: {
-            pcl::PointCloud<pcl::FPFHSignature33> source_features, target_features;
-            computeFPFHFeatures(source_keypoints, source_normals, source_features);
-            computeFPFHFeatures(target_keypoints, target_normals, target_features);
+            pcl::PointCloud<FPFHSignature33>::Ptr source_features (new PointCloud<FPFHSignature33>);
+            pcl::PointCloud<FPFHSignature33>::Ptr target_features (new PointCloud<FPFHSignature33>);
+            computeFPFHFeatures(source_keypoints, source_normals, source_features, 0.1);
+            computeFPFHFeatures(target_keypoints, target_normals, target_features, 0.1);
             
-            SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::FPFHSignature33> reg;
-            reg.setMinSampleDistance (0.05f);
-            reg.setMaxCorrespondenceDistance (0.05);
-            reg.setMaximumIterations (20000);
-            pcl::registration::CorrespondenceRejectorSampleConsensus<pcl::PointXYZ>::Ptr rej_samp (new pcl::registration::CorrespondenceRejectorSampleConsensus<pcl::PointXYZ>);
-            reg.addCorrespondenceRejector(rej_samp);
-            reg.setEuclideanFitnessEpsilon(0.0001);
-            reg.setInputCloud (source_keypoints);
-            reg.setInputTarget (target_keypoints);
-            reg.setSourceFeatures (source_features.makeShared());
-            reg.setTargetFeatures (target_features.makeShared());
-            reg.align (*source_keypoints_ia);
-            T_initial = reg.getFinalTransformation();
-            fit_score_ia = reg.getFitnessScore();
+//            SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::FPFHSignature33> reg;
+//            reg.setMinSampleDistance (0.05f);
+//            reg.setMaxCorrespondenceDistance (0.1);
+//            reg.setMaximumIterations (5000);
+//            pcl::registration::CorrespondenceRejectorSampleConsensus<pcl::PointXYZ>::Ptr rej_samp (new pcl::registration::CorrespondenceRejectorSampleConsensus<pcl::PointXYZ>);
+//            reg.addCorrespondenceRejector(rej_samp);
+//            reg.setEuclideanFitnessEpsilon(0.0001);
+//            reg.setInputCloud (source_keypoints);
+//            reg.setInputTarget (target_keypoints);
+//            reg.setSourceFeatures (source_features.makeShared());
+//            reg.setTargetFeatures (target_features.makeShared());
+//            reg.align (*source_keypoints_ia);
+//            T_initial = reg.getFinalTransformation();
+//            fit_score_ia = reg.getFitnessScore();
             
+            // Perform correspondence estimation
+            boost::shared_ptr<Correspondences> correspondences (new Correspondences);
+            registration::CorrespondenceEstimation<FPFHSignature33, FPFHSignature33> corr_est;
+            search::KdTree<FPFHSignature33>::Ptr corr_tree (new search::KdTree<FPFHSignature33>);
+            corr_est.setSearchMethodTarget(corr_tree);
+            corr_est.setInputSource (source_features);
+            corr_est.setInputTarget (target_features);
+            corr_est.determineReciprocalCorrespondences (*correspondences);
+ 
+            // Perform correspondence rejection
+//            boost::shared_ptr<pcl::Correspondences> correspondences_final (new pcl::Correspondences);
+//            pcl::registration::CorrespondenceRejectorSampleConsensus<FPFHSignature33> corr_rej_sac;
+//            corr_rej_sac.setInputCloud (source_features);
+//            corr_rej_sac.setTargetCloud (target_features);
+//            corr_rej_sac.setInlierThreshold (0.01);
+//            corr_rej_sac.setMaxIterations (5000);
+//            corr_rej_sac.setInputCorrespondences (correspondences);
+//            corr_rej_sac.getCorrespondences (*correspondences_final);
+            
+            // Compute rigid transformation
+            pcl::registration::TransformationEstimationSVD<PointXYZI, PointXYZI> trans_est_svd;
+            trans_est_svd.estimateRigidTransformation(*source_keypoints, *target_keypoints, *correspondences, T_initial);
+            transformPointCloud(*source_keypoints, *source_keypoints_ia, T_initial);
             break;
         }
         case IS: {
             
             break;
+        }
+        case RIFT: {
+            
         }
         case NONE: {
             fit_score_ia = 0.0;
@@ -135,10 +162,10 @@ int main(int argc, const char * argv[]) {
         }
     }
     
-    cout << "Initial Fitness Score:" << fit_score_ia << endl;
+//    cout << "Initial Fitness Score:" << fit_score_ia << endl;
     cout << "Performing ICP Refinement..." << endl;
     // Refine with ICP
-    PointCloud<PointXYZ>::Ptr source_keypoints_aligned (new PointCloud<PointXYZ>);
+    PointCloud<PointXYZI>::Ptr source_keypoints_aligned (new PointCloud<PointXYZI>);
     Eigen::Matrix4f T_ICP;
     computeICPAlignment(source_keypoints_ia, target_keypoints, source_keypoints_aligned, T_ICP, 20000);
     
@@ -146,8 +173,9 @@ int main(int argc, const char * argv[]) {
     cout << "Computation time: " << duration << "\n";
     
     // Save aligned source clouds
+    io::savePLYFileBinary(resultsDirectory + "source_keypoints_ia.ply", *source_keypoints_ia);
     io::savePLYFileBinary(resultsDirectory + "source_keypoints_aligned.ply", *source_keypoints_aligned);
-    PointCloud<PointXYZ>::Ptr source_aligned (new PointCloud<PointXYZ>);
+    PointCloud<PointXYZI>::Ptr source_aligned (new PointCloud<PointXYZI>);
     Eigen::Matrix4f T_final = T_initial * T_ICP;
     transformPointCloud(*source, *source_aligned, T_final);
     io::savePLYFileBinary(resultsDirectory + "source_aligned.ply", *source_aligned);

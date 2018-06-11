@@ -12,9 +12,9 @@
 #include <stdio.h>
 #include "utilities.hpp"
 
-#define CORR_DIST 0.05
+#define CORR_DIST 0.1
 #define RANSAC_DIST 0.05
-#define CONV_EPS 0.000001
+#define CONV_EPS 0.0000001
 
 void computeICPAlignment(const pcl::PointCloud<pcl::PointXYZI>::Ptr &source, const pcl::PointCloud<pcl::PointXYZI>::Ptr &target, pcl::PointCloud<pcl::PointXYZI>::Ptr &source_aligned, Eigen::Matrix4f &T, int num_iter = 10000);
 

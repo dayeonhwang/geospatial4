@@ -8,7 +8,7 @@
 
 #ifndef descriptors_hpp
 #define descriptors_hpp
-
+#define PCL_NO_PRECOMPILE
 #include <stdio.h>
 #include "utilities.hpp"
 
@@ -28,6 +28,6 @@ void computeNormals(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::Poin
 
 void computeFPFHFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, const pcl::PointCloud<pcl::Normal>::Ptr &normals, pcl::PointCloud<pcl::FPFHSignature33>::Ptr &features, double search_radius = 0.05);
 
-//void computeISFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<IntensitySpin>::Ptr &features, double search_radius = 10.0);
+void computeISFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<IntensitySpin>::Ptr &features, double search_radius = 1.0);
 
 #endif /* descriptors_hpp */

@@ -31,7 +31,7 @@ int main(int argc, const char * argv[]) {
     string targetFilename = "../../../../point_cloud_registration1/pointcloud2_ned.ply";
     string resultsDirectory = "../../../results/";
     keypoint_t keypoint = ISS;
-    descriptor_t descriptor = NONE;
+    descriptor_t descriptor = IS;
     string key_name;
     string des_name;
     
@@ -125,17 +125,17 @@ int main(int argc, const char * argv[]) {
             computeFPFHFeatures(source_keypoints, source_normals, source_features, 0.1);
             computeFPFHFeatures(target_keypoints, target_normals, target_features, 0.1);
 
-//            SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::FPFHSignature33> reg;
+//            SampleConsensusInitialAlignment<pcl::PointXYZI, pcl::PointXYZI, pcl::FPFHSignature33> reg;
 //            reg.setMinSampleDistance (0.05f);
-//            reg.setMaxCorrespondenceDistance (0.1);
+//            reg.setMaxCorrespondenceDistance (0.05);
 //            reg.setMaximumIterations (5000);
 //            pcl::registration::CorrespondenceRejectorSampleConsensus<pcl::PointXYZ>::Ptr rej_samp (new pcl::registration::CorrespondenceRejectorSampleConsensus<pcl::PointXYZ>);
 //            reg.addCorrespondenceRejector(rej_samp);
 //            reg.setEuclideanFitnessEpsilon(0.0001);
-//            reg.setInputCloud (source_keypoints);
+//            reg.setInputSource (source_keypoints);
 //            reg.setInputTarget (target_keypoints);
-//            reg.setSourceFeatures (source_features.makeShared());
-//            reg.setTargetFeatures (target_features.makeShared());
+//            reg.setSourceFeatures (source_features->makeShared());
+//            reg.setTargetFeatures (target_features->makeShared());
 //            reg.align (*source_keypoints_ia);
 //            T_initial = reg.getFinalTransformation();
 //            fit_score_ia = reg.getFitnessScore();
@@ -148,16 +148,6 @@ int main(int argc, const char * argv[]) {
             corr_est.setInputTarget (target_features);
             corr_est.determineReciprocalCorrespondences (*correspondences);
 
-            // Perform correspondence rejection
-//            boost::shared_ptr<pcl::Correspondences> correspondences_final (new pcl::Correspondences);
-//            pcl::registration::CorrespondenceRejectorSampleConsensus<FPFHSignature33> corr_rej_sac;
-//            corr_rej_sac.setInputCloud (source_features);
-//            corr_rej_sac.setTargetCloud (target_features);
-//            corr_rej_sac.setInlierThreshold (0.01);
-//            corr_rej_sac.setMaxIterations (5000);
-//            corr_rej_sac.setInputCorrespondences (correspondences);
-//            corr_rej_sac.getCorrespondences (*correspondences_final);
-
             break;
         }
         case IS: {
@@ -166,24 +156,24 @@ int main(int argc, const char * argv[]) {
 
             pcl::PointCloud<IntensitySpin>::Ptr source_features (new PointCloud<IntensitySpin>);
             pcl::PointCloud<IntensitySpin>::Ptr target_features (new PointCloud<IntensitySpin>);
-//            computeISFeatures(source_keypoints, source_features);
-//            computeISFeatures(target_keypoints, target_features);
+            computeISFeatures(source_keypoints, source_features);
+            computeISFeatures(target_keypoints, target_features);
 
 
-            pcl::IntensitySpinEstimation<pcl::PointXYZI, IntensitySpin> ispin_est;
-            pcl::search::KdTree<pcl::PointXYZI>::Ptr treept3 (new pcl::search::KdTree<pcl::PointXYZI> (false));
-            ispin_est.setSearchMethod (treept3);
-//            ispin_est.setKSearch(4);
-            ispin_est.setRadiusSearch (1.0);
-            ispin_est.setNrDistanceBins (4);
-            ispin_est.setNrIntensityBins (5);
-            
-            ispin_est.setInputCloud (source_keypoints->makeShared ());
-            ispin_est.compute (*source_features);
-            
-            
-            ispin_est.setInputCloud (target_keypoints->makeShared());
-            ispin_est.compute (*target_features);
+//            pcl::IntensitySpinEstimation<pcl::PointXYZI, IntensitySpin> ispin_est;
+//            pcl::search::KdTree<pcl::PointXYZI>::Ptr treept3 (new pcl::search::KdTree<pcl::PointXYZI> (false));
+//            ispin_est.setSearchMethod (treept3);
+////            ispin_est.setKSearch(4);
+//            ispin_est.setRadiusSearch (1.0);
+//            ispin_est.setNrDistanceBins (4);
+//            ispin_est.setNrIntensityBins (5);
+//            
+//            ispin_est.setInputCloud (source_keypoints->makeShared ());
+//            ispin_est.compute (*source_features);
+//            
+//            
+//            ispin_est.setInputCloud (target_keypoints->makeShared());
+//            ispin_est.compute (*target_features);
             
             // Perform correspondence estimation
             registration::CorrespondenceEstimation<IntensitySpin, IntensitySpin> corr_est;
@@ -197,29 +187,41 @@ int main(int argc, const char * argv[]) {
         }
         case RIFT: {
             des_name = "RIFT";
+            
         }
         case NONE: {
             des_name = "ICP";
             fit_score_ia = 0.0;
             copyPointCloud(*source_keypoints, *source_keypoints_ia);
+            T_initial = Eigen::Matrix4f(Eigen::Matrix4f::Identity());
         }
     }
-
+    
+    boost::shared_ptr<pcl::Correspondences> correspondences_final (new pcl::Correspondences);
+    PointCloud<PointXYZI>::Ptr source_keypoints_aligned (new PointCloud<PointXYZI>);
     if (descriptor != NONE) {
+        
+        //Perform correspondence rejection using sample consensus
+        pcl::registration::CorrespondenceRejectorSampleConsensus<PointXYZI> corr_rej_sac;
+        corr_rej_sac.setInputSource (source_keypoints);
+        corr_rej_sac.setInputTarget (target_keypoints);
+        corr_rej_sac.setInlierThreshold (0.01);
+        corr_rej_sac.setMaximumIterations (20000);
+        corr_rej_sac.setInputCorrespondences (correspondences);
+        corr_rej_sac.getCorrespondences (*correspondences_final);
+        
         // Compute rigid transformation
         pcl::registration::TransformationEstimationSVD<PointXYZI, PointXYZI> trans_est_svd;
-        trans_est_svd.estimateRigidTransformation(*source_keypoints, *target_keypoints, *correspondences, T_initial);
+        trans_est_svd.estimateRigidTransformation(*source_keypoints, *target_keypoints, *correspondences_final, T_initial);
         transformPointCloud(*source_keypoints, *source_keypoints_ia, T_initial);
         
     }
 
-//    cout << "Initial Fitness Score:" << fit_score_ia << endl;
     cout << "Performing ICP Refinement..." << endl;
     // Refine with ICP
-    PointCloud<PointXYZI>::Ptr source_keypoints_aligned (new PointCloud<PointXYZI>);
     Eigen::Matrix4f T_ICP;
     computeICPAlignment(source_keypoints_ia, target_keypoints, source_keypoints_aligned, T_ICP, 50000);
-
+    
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
     cout << "Computation time: " << duration << "\n";
 

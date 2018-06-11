@@ -19,7 +19,7 @@
 
 
 enum keypoint_t {ISS, SIFT, HARRIS};
-enum descriptor_t {FPFH, IS, RIFT, NONE};
+enum descriptor_t {FPFH, IS, R, NONE};
 
 
 using namespace pcl;
@@ -34,7 +34,7 @@ int main(int argc, const char * argv[]) {
     descriptor_t descriptor = FPFH;
     string key_name;
     string des_name;
-    
+
     // Parse arguments
     if (argc > 1) {
         for (int i = 1; i < argc; i++) {
@@ -159,7 +159,6 @@ int main(int argc, const char * argv[]) {
             computeISFeatures(source_keypoints, source_features);
             computeISFeatures(target_keypoints, target_features);
 
-
 //            pcl::IntensitySpinEstimation<pcl::PointXYZI, IntensitySpin> ispin_est;
 //            pcl::search::KdTree<pcl::PointXYZI>::Ptr treept3 (new pcl::search::KdTree<pcl::PointXYZI> (false));
 //            ispin_est.setSearchMethod (treept3);
@@ -167,14 +166,14 @@ int main(int argc, const char * argv[]) {
 //            ispin_est.setRadiusSearch (1.0);
 //            ispin_est.setNrDistanceBins (4);
 //            ispin_est.setNrIntensityBins (5);
-//            
+//
 //            ispin_est.setInputCloud (source_keypoints->makeShared ());
 //            ispin_est.compute (*source_features);
-//            
-//            
+//
+//
 //            ispin_est.setInputCloud (target_keypoints->makeShared());
 //            ispin_est.compute (*target_features);
-            
+
             // Perform correspondence estimation
             registration::CorrespondenceEstimation<IntensitySpin, IntensitySpin> corr_est;
             search::KdTree<IntensitySpin>::Ptr corr_tree (new search::KdTree<IntensitySpin>);
@@ -182,12 +181,25 @@ int main(int argc, const char * argv[]) {
             corr_est.setInputSource (source_features);
             corr_est.setInputTarget (target_features);
             corr_est.determineReciprocalCorrespondences (*correspondences);
-            
+
             break;
         }
-        case RIFT: {
-            des_name = "RIFT";
-            
+        case R: {
+            des_name = "R";
+            pcl::PointCloud<RIFT>::Ptr source_features (new PointCloud<RIFT>);
+            pcl::PointCloud<RIFT>::Ptr target_features (new PointCloud<RIFT>);
+            computeRIFTFeatures(source_keypoints, source_features);
+            computeRIFTFeatures(target_keypoints, target_features);
+
+            // Perform correspondence estimation
+            registration::CorrespondenceEstimation<RIFT, RIFT> corr_est;
+            search::KdTree<RIFT>::Ptr corr_tree (new search::KdTree<RIFT>);
+            corr_est.setSearchMethodTarget(corr_tree);
+            corr_est.setInputSource (source_features);
+            corr_est.setInputTarget (target_features);
+            corr_est.determineReciprocalCorrespondences (*correspondences);
+
+            break;
         }
         case NONE: {
             des_name = "ICP";
@@ -197,11 +209,11 @@ int main(int argc, const char * argv[]) {
             T_initial = Eigen::Matrix4f(Eigen::Matrix4f::Identity());
         }
     }
-    
+
     boost::shared_ptr<pcl::Correspondences> correspondences_final (new pcl::Correspondences);
     PointCloud<PointXYZI>::Ptr source_keypoints_aligned (new PointCloud<PointXYZI>);
     if (descriptor != NONE) {
-        
+
         //Perform correspondence rejection using sample consensus
         pcl::registration::CorrespondenceRejectorSampleConsensus<PointXYZI> corr_rej_sac;
         corr_rej_sac.setInputSource (source_keypoints);
@@ -210,7 +222,7 @@ int main(int argc, const char * argv[]) {
         corr_rej_sac.setMaximumIterations (10000);
         corr_rej_sac.setInputCorrespondences (correspondences);
         corr_rej_sac.getCorrespondences (*correspondences_final);
-        
+
         // Compute rigid transformation
         registration::TransformationEstimationSVD<PointXYZI, PointXYZI> trans_est_svd;
         trans_est_svd.estimateRigidTransformation(*source_keypoints, *target_keypoints, *correspondences_final, T_initial);
@@ -224,10 +236,10 @@ int main(int argc, const char * argv[]) {
     Eigen::Matrix4f T_ICP;
     int ICP_iter = 50000;
     double score_final = computeICPAlignment(source_keypoints_ia, target_keypoints, source_keypoints_aligned, T_ICP, ICP_iter);
-    
+
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
     cout << "Computation time: " << duration << "\n";
-    
+
     // Save aligned source clouds
     io::savePLYFileBinary(resultsDirectory + "source_keypoints_ia_" + key_name + "_" + des_name + ".ply", *source_keypoints_ia);
     io::savePLYFileBinary(resultsDirectory + "source_keypoints_aligned_" + key_name + "_" + des_name + ".ply", *source_keypoints_aligned);
@@ -235,7 +247,7 @@ int main(int argc, const char * argv[]) {
     Eigen::Matrix4f T_final = T_initial * T_ICP;
     transformPointCloud(*source, *source_aligned, T_final);
     io::savePLYFileBinary(resultsDirectory + "source_aligned_" + key_name + "_" + des_name + ".ply", *source_aligned);
-    
+
     // Compute initial and final L2SQR score
     registration::TransformationValidationEuclidean<pcl::PointXYZI, pcl::PointXYZI> tve;
     tve.setMaxRange (0.1);  // 1cm
@@ -244,7 +256,7 @@ int main(int argc, const char * argv[]) {
     registration::TransformationValidationEuclidean<pcl::PointXYZI, pcl::PointXYZI> tve_final;
     tve_final.setMaxRange (0.1);  // 1cm
     score_final = tve.validateTransformation (source, target, T_final);
-    
+
     // Store data in text file
     ofstream alignInfo;
     alignInfo.open(resultsDirectory + "results_" + key_name + "_" + des_name + ".txt");
@@ -256,6 +268,6 @@ int main(int argc, const char * argv[]) {
     alignInfo << "Final Tranformation Matrix: \n" << std::setprecision(20) << T_final << endl;
     alignInfo << "Total computation time: " << duration << " seconds." << endl;
     alignInfo.close();
-    
+
     return 0;
 }

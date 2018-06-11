@@ -27,14 +27,14 @@ using namespace std;
 
 int main(int argc, const char * argv[]) {
     // Initialize arguments
-    string sourceFilename = "data/pointcloud1_ned.ply";
-    string targetFilename = "data/pointcloud2_ned.ply";
-    string resultsDirectory = "results/";
-    keypoint_t keypoint = ISS;
-    descriptor_t descriptor = R;
+    string sourceFilename = "../../../../point_cloud_registration1/pointcloud1_ned.ply";
+    string targetFilename = "../../../../point_cloud_registration1/pointcloud2_ned.ply";
+    string resultsDirectory = "../../../results/";
+    keypoint_t keypoint = HARRIS;
+    descriptor_t descriptor = IS;
     string key_name;
     string des_name;
-    
+
     // Parse arguments
     if (argc > 1) {
         for (int i = 1; i < argc; i++) {
@@ -113,7 +113,7 @@ int main(int argc, const char * argv[]) {
     // Perform initial alignment
     PointCloud<PointXYZI>::Ptr source_keypoints_ia (new PointCloud<PointXYZI>);
     Eigen::Matrix4f T_initial;
-    double fit_score_ia;
+    double score_ia, score_test;
     boost::shared_ptr<Correspondences> correspondences (new Correspondences);
     cout << "Performing Initial Alignment..." << endl;
     switch (descriptor)
@@ -166,14 +166,14 @@ int main(int argc, const char * argv[]) {
 //            ispin_est.setRadiusSearch (1.0);
 //            ispin_est.setNrDistanceBins (4);
 //            ispin_est.setNrIntensityBins (5);
-//            
+//
 //            ispin_est.setInputCloud (source_keypoints->makeShared ());
 //            ispin_est.compute (*source_features);
-//            
-//            
+//
+//
 //            ispin_est.setInputCloud (target_keypoints->makeShared());
 //            ispin_est.compute (*target_features);
-            
+
             // Perform correspondence estimation
             registration::CorrespondenceEstimation<IntensitySpin, IntensitySpin> corr_est;
             search::KdTree<IntensitySpin>::Ptr corr_tree (new search::KdTree<IntensitySpin>);
@@ -181,7 +181,7 @@ int main(int argc, const char * argv[]) {
             corr_est.setInputSource (source_features);
             corr_est.setInputTarget (target_features);
             corr_est.determineReciprocalCorrespondences (*correspondences);
-            
+
             break;
         }
         case R: {
@@ -190,7 +190,7 @@ int main(int argc, const char * argv[]) {
             pcl::PointCloud<RIFT>::Ptr target_features (new PointCloud<RIFT>);
             computeRIFTFeatures(source_keypoints, source_features);
             computeRIFTFeatures(target_keypoints, target_features);
-            
+
             // Perform correspondence estimation
             registration::CorrespondenceEstimation<RIFT, RIFT> corr_est;
             search::KdTree<RIFT>::Ptr corr_tree (new search::KdTree<RIFT>);
@@ -198,42 +198,48 @@ int main(int argc, const char * argv[]) {
             corr_est.setInputSource (source_features);
             corr_est.setInputTarget (target_features);
             corr_est.determineReciprocalCorrespondences (*correspondences);
-            
+
             break;
         }
         case NONE: {
             des_name = "ICP";
-            fit_score_ia = 0.0;
+            score_ia = 0.0;
+            score_test = 0.0;
             copyPointCloud(*source_keypoints, *source_keypoints_ia);
             T_initial = Eigen::Matrix4f(Eigen::Matrix4f::Identity());
         }
     }
-    
+
     boost::shared_ptr<pcl::Correspondences> correspondences_final (new pcl::Correspondences);
     PointCloud<PointXYZI>::Ptr source_keypoints_aligned (new PointCloud<PointXYZI>);
     if (descriptor != NONE) {
-        
+
         //Perform correspondence rejection using sample consensus
         pcl::registration::CorrespondenceRejectorSampleConsensus<PointXYZI> corr_rej_sac;
         corr_rej_sac.setInputSource (source_keypoints);
         corr_rej_sac.setInputTarget (target_keypoints);
-        corr_rej_sac.setInlierThreshold (0.01);
-        corr_rej_sac.setMaximumIterations (20000);
+        corr_rej_sac.setInlierThreshold (0.05);
+        corr_rej_sac.setMaximumIterations (10000);
         corr_rej_sac.setInputCorrespondences (correspondences);
         corr_rej_sac.getCorrespondences (*correspondences_final);
-        
+
         // Compute rigid transformation
-        pcl::registration::TransformationEstimationSVD<PointXYZI, PointXYZI> trans_est_svd;
+        registration::TransformationEstimationSVD<PointXYZI, PointXYZI> trans_est_svd;
         trans_est_svd.estimateRigidTransformation(*source_keypoints, *target_keypoints, *correspondences_final, T_initial);
         transformPointCloud(*source_keypoints, *source_keypoints_ia, T_initial);
-        
+        registration::TransformationValidationEuclidean<pcl::PointXYZI, pcl::PointXYZI> tve;
+        tve.setMaxRange (0.1);  // 1cm
+        score_ia = tve.validateTransformation (source_keypoints, target_keypoints, T_initial);
+        score_test = computeFitScore(source_keypoints_ia, target_keypoints, correspondences_final);
     }
-
+    cout << "Initial alignment score: " << score_ia << endl;
+    cout << "Test score: " << score_test << endl;
     cout << "Performing ICP Refinement..." << endl;
     // Refine with ICP
     Eigen::Matrix4f T_ICP;
-    computeICPAlignment(source_keypoints_ia, target_keypoints, source_keypoints_aligned, T_ICP, 50000);
-    
+    int ICP_iter = 50000;
+    double score_final = computeICPAlignment(source_keypoints_ia, target_keypoints, source_keypoints_aligned, T_ICP, ICP_iter);
+
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
     cout << "Computation time: " << duration << "\n";
 
@@ -244,5 +250,18 @@ int main(int argc, const char * argv[]) {
     Eigen::Matrix4f T_final = T_initial * T_ICP;
     transformPointCloud(*source, *source_aligned, T_final);
     io::savePLYFileBinary(resultsDirectory + "source_aligned_" + key_name + "_" + des_name + ".ply", *source_aligned);
+
+    // Store data in text file
+    ofstream alignInfo;
+    alignInfo.open(resultsDirectory + "results_" + key_name + "_" + des_name + ".txt");
+    alignInfo << "Keypoint type: " << key_name << endl;
+    alignInfo << "Descriptor type: " << des_name << endl;
+    alignInfo << "Initial alignment score: " << score_ia << endl;
+    alignInfo << "Initial Tranformation Matrix: \n" << std::setprecision(20) << T_initial << endl;
+    alignInfo << "ICP alignment score after " << ICP_iter << "iterations: " << score_final << endl;
+    alignInfo << "Final Tranformation Matrix: \n" << std::setprecision(20) << T_final << endl;
+    alignInfo << "Total computation time: " << duration << " seconds." << endl;
+    alignInfo.close();
+
     return 0;
 }

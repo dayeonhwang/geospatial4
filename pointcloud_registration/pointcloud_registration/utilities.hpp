@@ -31,8 +31,13 @@
 #include <pcl/features/intensity_spin.h>
 #include <pcl/features/intensity_gradient.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/registration/transformation_validation_euclidean.h>
+#include <pcl/common/geometry.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
+
+double computeFitScore (const pcl::PointCloud<pcl::PointXYZI>::Ptr &source, const pcl::PointCloud<pcl::PointXYZI>::Ptr &target, const boost::shared_ptr<pcl::Correspondences> &correspondences);
+
 
 #endif /* utilities_hpp */

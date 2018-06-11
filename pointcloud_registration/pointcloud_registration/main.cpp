@@ -19,7 +19,7 @@
 
 
 enum keypoint_t {ISS, SIFT, HARRIS};
-enum descriptor_t {FPFH, IS, RIFT, NONE};
+enum descriptor_t {FPFH, IS, R, NONE};
 
 
 using namespace pcl;
@@ -27,11 +27,11 @@ using namespace std;
 
 int main(int argc, const char * argv[]) {
     // Initialize arguments
-    string sourceFilename = "../../../../point_cloud_registration1/pointcloud1_ned.ply";
-    string targetFilename = "../../../../point_cloud_registration1/pointcloud2_ned.ply";
-    string resultsDirectory = "../../../results/";
+    string sourceFilename = "data/pointcloud1_ned.ply";
+    string targetFilename = "data/pointcloud2_ned.ply";
+    string resultsDirectory = "results/";
     keypoint_t keypoint = ISS;
-    descriptor_t descriptor = IS;
+    descriptor_t descriptor = R;
     string key_name;
     string des_name;
     
@@ -159,7 +159,6 @@ int main(int argc, const char * argv[]) {
             computeISFeatures(source_keypoints, source_features);
             computeISFeatures(target_keypoints, target_features);
 
-
 //            pcl::IntensitySpinEstimation<pcl::PointXYZI, IntensitySpin> ispin_est;
 //            pcl::search::KdTree<pcl::PointXYZI>::Ptr treept3 (new pcl::search::KdTree<pcl::PointXYZI> (false));
 //            ispin_est.setSearchMethod (treept3);
@@ -185,9 +184,22 @@ int main(int argc, const char * argv[]) {
             
             break;
         }
-        case RIFT: {
-            des_name = "RIFT";
+        case R: {
+            des_name = "R";
+            pcl::PointCloud<RIFT>::Ptr source_features (new PointCloud<RIFT>);
+            pcl::PointCloud<RIFT>::Ptr target_features (new PointCloud<RIFT>);
+            computeRIFTFeatures(source_keypoints, source_features);
+            computeRIFTFeatures(target_keypoints, target_features);
             
+            // Perform correspondence estimation
+            registration::CorrespondenceEstimation<RIFT, RIFT> corr_est;
+            search::KdTree<RIFT>::Ptr corr_tree (new search::KdTree<RIFT>);
+            corr_est.setSearchMethodTarget(corr_tree);
+            corr_est.setInputSource (source_features);
+            corr_est.setInputTarget (target_features);
+            corr_est.determineReciprocalCorrespondences (*correspondences);
+            
+            break;
         }
         case NONE: {
             des_name = "ICP";

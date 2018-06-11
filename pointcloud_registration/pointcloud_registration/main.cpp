@@ -19,7 +19,7 @@
 
 
 enum keypoint_t {ISS, SIFT, HARRIS};
-enum descriptor_t {FPFH, IS, R, NONE};
+enum descriptor_t {FPFH, IS, R, ICP};
 
 
 using namespace pcl;
@@ -31,9 +31,10 @@ int main(int argc, const char * argv[]) {
     string targetFilename = "../../../../point_cloud_registration1/pointcloud2_ned.ply";
     string resultsDirectory = "../../../results/";
     keypoint_t keypoint = HARRIS;
-    descriptor_t descriptor = FPFH;
+    descriptor_t descriptor = ICP;
     string key_name;
     string des_name;
+    bool load_keypoints = false;
 
     // Parse arguments
     if (argc > 1) {
@@ -81,27 +82,47 @@ int main(int argc, const char * argv[]) {
     switch (keypoint){
         case ISS: {
             key_name = "ISS";
-            computeISSKeypoints(source, source_keypoints);
-            computeISSKeypoints(target, target_keypoints);
+            if (!load_keypoints) {
+                computeISSKeypoints(source, source_keypoints);
+                computeISSKeypoints(target, target_keypoints);
+            }
             break;
         }
         case SIFT: {
             key_name = "SIFT";
-            computeSIFTKeypoints(source, source_keypoints);
-            computeSIFTKeypoints(target, target_keypoints);
+            if (!load_keypoints) {
+                computeSIFTKeypoints(source, source_keypoints);
+                computeSIFTKeypoints(target, target_keypoints);
+            }
             break;
             ;
         }
         case HARRIS: {
             key_name = "HARRIS";
-            computeHARRISKeypoints(source, source_keypoints);
-            computeHARRISKeypoints(target, target_keypoints);
+            if (!load_keypoints) {
+                computeHARRISKeypoints(source, source_keypoints);
+                computeHARRISKeypoints(target, target_keypoints);
+            }
             break;
         }
     }
-    // Save keypoints
-    io::savePLYFileBinary(resultsDirectory + "source_keypoints_" + key_name + ".ply", *source_keypoints);
-    io::savePLYFileBinary(resultsDirectory + "target_keypoints_" + key_name + ".ply", *target_keypoints);
+    
+    if (!load_keypoints) {
+        // Save keypoints
+        io::savePLYFileBinary(resultsDirectory + "source_keypoints_" + key_name + ".ply", *source_keypoints);
+        io::savePLYFileBinary(resultsDirectory + "target_keypoints_" + key_name + ".ply", *target_keypoints);
+    } else {
+        // Load keypoints
+        if (io::loadPLYFile(resultsDirectory + "source_keypoints_" + key_name + ".ply", *source_keypoints) == -1) {
+            PCL_ERROR ("Couldn't read source keypoints \n");
+            return (-1);
+        }
+        if (io::loadPLYFile(resultsDirectory + "target_keypoints_" + key_name + ".ply", *target_keypoints) == -1) {
+            PCL_ERROR ("Couldn't read target keypoints \n");
+            return (-1);
+            }
+    }
+
 
     PointCloud<Normal>::Ptr source_normals (new PointCloud<Normal>);
     PointCloud<Normal>::Ptr target_normals (new PointCloud<Normal>);
@@ -111,9 +132,9 @@ int main(int argc, const char * argv[]) {
     computeNormals(target_keypoints, target_normals, 0.1);
 
     // Perform initial alignment
-    PointCloud<PointXYZI>::Ptr source_keypoints_ia (new PointCloud<PointXYZI>);
-    Eigen::Matrix4f T_initial;
-    double score_ia, score_test;
+    PointCloud<PointXYZI>::Ptr source_keypoints_aligned (new PointCloud<PointXYZI>);
+    Eigen::Matrix4f T;
+    double score;
     boost::shared_ptr<Correspondences> correspondences (new Correspondences);
     cout << "Performing Initial Alignment..." << endl;
     switch (descriptor)
@@ -124,21 +145,6 @@ int main(int argc, const char * argv[]) {
             pcl::PointCloud<FPFHSignature33>::Ptr target_features (new PointCloud<FPFHSignature33>);
             computeFPFHFeatures(source_keypoints, source_normals, source_features, 0.1);
             computeFPFHFeatures(target_keypoints, target_normals, target_features, 0.1);
-
-//            SampleConsensusInitialAlignment<pcl::PointXYZI, pcl::PointXYZI, pcl::FPFHSignature33> reg;
-//            reg.setMinSampleDistance (0.05f);
-//            reg.setMaxCorrespondenceDistance (0.05);
-//            reg.setMaximumIterations (5000);
-//            pcl::registration::CorrespondenceRejectorSampleConsensus<pcl::PointXYZ>::Ptr rej_samp (new pcl::registration::CorrespondenceRejectorSampleConsensus<pcl::PointXYZ>);
-//            reg.addCorrespondenceRejector(rej_samp);
-//            reg.setEuclideanFitnessEpsilon(0.0001);
-//            reg.setInputSource (source_keypoints);
-//            reg.setInputTarget (target_keypoints);
-//            reg.setSourceFeatures (source_features->makeShared());
-//            reg.setTargetFeatures (target_features->makeShared());
-//            reg.align (*source_keypoints_ia);
-//            T_initial = reg.getFinalTransformation();
-//            fit_score_ia = reg.getFitnessScore();
 
             // Perform correspondence estimation
             registration::CorrespondenceEstimation<FPFHSignature33, FPFHSignature33> corr_est;
@@ -159,20 +165,6 @@ int main(int argc, const char * argv[]) {
             computeISFeatures(source_keypoints, source_features);
             computeISFeatures(target_keypoints, target_features);
 
-//            pcl::IntensitySpinEstimation<pcl::PointXYZI, IntensitySpin> ispin_est;
-//            pcl::search::KdTree<pcl::PointXYZI>::Ptr treept3 (new pcl::search::KdTree<pcl::PointXYZI> (false));
-//            ispin_est.setSearchMethod (treept3);
-////            ispin_est.setKSearch(4);
-//            ispin_est.setRadiusSearch (1.0);
-//            ispin_est.setNrDistanceBins (4);
-//            ispin_est.setNrIntensityBins (5);
-//
-//            ispin_est.setInputCloud (source_keypoints->makeShared ());
-//            ispin_est.compute (*source_features);
-//
-//
-//            ispin_est.setInputCloud (target_keypoints->makeShared());
-//            ispin_est.compute (*target_features);
 
             // Perform correspondence estimation
             registration::CorrespondenceEstimation<IntensitySpin, IntensitySpin> corr_est;
@@ -201,19 +193,18 @@ int main(int argc, const char * argv[]) {
 
             break;
         }
-        case NONE: {
+        case ICP: {
             des_name = "ICP";
-            score_ia = 0.0;
-            score_test = 0.0;
-            copyPointCloud(*source_keypoints, *source_keypoints_ia);
-            T_initial = Eigen::Matrix4f(Eigen::Matrix4f::Identity());
         }
     }
 
     boost::shared_ptr<pcl::Correspondences> correspondences_final (new pcl::Correspondences);
-    PointCloud<PointXYZI>::Ptr source_keypoints_aligned (new PointCloud<PointXYZI>);
-    if (descriptor != NONE) {
 
+    if (descriptor == ICP) {
+        int ICP_iter = 50000;
+        double score_final = computeICPAlignment(source_keypoints, target_keypoints, source_keypoints_aligned, T, ICP_iter);
+    } else {
+    
         //Perform correspondence rejection using sample consensus
         pcl::registration::CorrespondenceRejectorSampleConsensus<PointXYZI> corr_rej_sac;
         corr_rej_sac.setInputSource (source_keypoints);
@@ -225,47 +216,40 @@ int main(int argc, const char * argv[]) {
 
         // Compute rigid transformation
         registration::TransformationEstimationSVD<PointXYZI, PointXYZI> trans_est_svd;
-        trans_est_svd.estimateRigidTransformation(*source_keypoints, *target_keypoints, *correspondences_final, T_initial);
-        transformPointCloud(*source_keypoints, *source_keypoints_ia, T_initial);
+        trans_est_svd.estimateRigidTransformation(*source_keypoints, *target_keypoints, *correspondences_final, T);
+        transformPointCloud(*source_keypoints, *source_keypoints_aligned, T);
 //        score_test = computeFitScore(source_keypoints_ia, target_keypoints, correspondences_final);
     }
-    cout << "Initial alignment score: " << score_ia << endl;
-    cout << "Test score: " << score_test << endl;
-    cout << "Performing ICP Refinement..." << endl;
-    // Refine with ICP
-    Eigen::Matrix4f T_ICP;
-    int ICP_iter = 50000;
-    double score_final = computeICPAlignment(source_keypoints_ia, target_keypoints, source_keypoints_aligned, T_ICP, ICP_iter);
 
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
     cout << "Computation time: " << duration << "\n";
 
     // Save aligned source clouds
-    io::savePLYFileBinary(resultsDirectory + "source_keypoints_ia_" + key_name + "_" + des_name + ".ply", *source_keypoints_ia);
     io::savePLYFileBinary(resultsDirectory + "source_keypoints_aligned_" + key_name + "_" + des_name + ".ply", *source_keypoints_aligned);
     PointCloud<PointXYZI>::Ptr source_aligned (new PointCloud<PointXYZI>);
-    Eigen::Matrix4f T_final = T_initial * T_ICP;
-    transformPointCloud(*source, *source_aligned, T_final);
+    transformPointCloud(*source, *source_aligned, T);
     io::savePLYFileBinary(resultsDirectory + "source_aligned_" + key_name + "_" + des_name + ".ply", *source_aligned);
 
-    // Compute initial and final L2SQR score
+    // Compute L2SQR score
     registration::TransformationValidationEuclidean<pcl::PointXYZI, pcl::PointXYZI> tve;
     tve.setMaxRange (0.1);  // 1cm
-    score_ia = tve.validateTransformation (source, target, T_initial);
+    score = tve.validateTransformation (source, target, T);
     
-    registration::TransformationValidationEuclidean<pcl::PointXYZI, pcl::PointXYZI> tve_final;
-    tve_final.setMaxRange (0.1);  // 1cm
-    score_final = tve.validateTransformation (source, target, T_final);
+//    registration::TransformationValidationEuclidean<pcl::PointXYZI, pcl::PointXYZI> tve_final;
+//    tve_final.setMaxRange (0.1);  // 1cm
+//    score_final = tve.validateTransformation (source, target, T_final);
 
     // Store data in text file
     ofstream alignInfo;
     alignInfo.open(resultsDirectory + "results_" + key_name + "_" + des_name + ".txt");
     alignInfo << "Keypoint type: " << key_name << endl;
     alignInfo << "Descriptor type: " << des_name << endl;
-    alignInfo << "Initial alignment score: " << score_ia << endl;
-    alignInfo << "Initial Tranformation Matrix: \n" << std::setprecision(20) << T_initial << endl;
-    alignInfo << "ICP alignment score after " << ICP_iter << "iterations: " << score_final << endl;
-    alignInfo << "Final Tranformation Matrix: \n" << std::setprecision(20) << T_final << endl;
+//    alignInfo << "Initial alignment score: " << score_ia << endl;
+//    alignInfo << "Initial Tranformation Matrix: \n" << std::setprecision(20) << T_initial << endl;
+//    alignInfo << "ICP alignment score after " << ICP_iter << "iterations: " << score_final << endl;
+//    alignInfo << "Final Tranformation Matrix: \n" << std::setprecision(20) << T_final << endl;
+    alignInfo << "Alignment score: " << score << endl;
+    alignInfo << "Transformation Matrix: " << setprecision(20) << T << endl;
     alignInfo << "Total computation time: " << duration << " seconds." << endl;
     alignInfo.close();
 

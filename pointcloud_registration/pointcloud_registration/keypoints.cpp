@@ -94,7 +94,7 @@ void computeSIFTKeypoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl
 
 void computeHARRISKeypoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr &keypoints) {
     double model_res = computeCloudResolution(cloud);
-    double nms_radius = 4 *  model_res; //4
+    double nms_radius = 10 *  model_res; //4
     double threshold = 0.1 * model_res;
     pcl::HarrisKeypoint3D<pcl::PointXYZI, pcl::PointXYZI> harris;
     harris.setNonMaxSupression(true);

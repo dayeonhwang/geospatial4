@@ -31,7 +31,7 @@ int main(int argc, const char * argv[]) {
     string targetFilename = "../../../../point_cloud_registration1/pointcloud2_ned.ply";
     string resultsDirectory = "../../../results/";
     keypoint_t keypoint = HARRIS;
-    descriptor_t descriptor = IS;
+    descriptor_t descriptor = FPFH;
     string key_name;
     string des_name;
     
@@ -215,10 +215,7 @@ int main(int argc, const char * argv[]) {
         registration::TransformationEstimationSVD<PointXYZI, PointXYZI> trans_est_svd;
         trans_est_svd.estimateRigidTransformation(*source_keypoints, *target_keypoints, *correspondences_final, T_initial);
         transformPointCloud(*source_keypoints, *source_keypoints_ia, T_initial);
-        registration::TransformationValidationEuclidean<pcl::PointXYZI, pcl::PointXYZI> tve;
-        tve.setMaxRange (0.1);  // 1cm
-        score_ia = tve.validateTransformation (source_keypoints, target_keypoints, T_initial);
-        score_test = computeFitScore(source_keypoints_ia, target_keypoints, correspondences_final);
+//        score_test = computeFitScore(source_keypoints_ia, target_keypoints, correspondences_final);
     }
     cout << "Initial alignment score: " << score_ia << endl;
     cout << "Test score: " << score_test << endl;
@@ -230,7 +227,7 @@ int main(int argc, const char * argv[]) {
     
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
     cout << "Computation time: " << duration << "\n";
-
+    
     // Save aligned source clouds
     io::savePLYFileBinary(resultsDirectory + "source_keypoints_ia_" + key_name + "_" + des_name + ".ply", *source_keypoints_ia);
     io::savePLYFileBinary(resultsDirectory + "source_keypoints_aligned_" + key_name + "_" + des_name + ".ply", *source_keypoints_aligned);
@@ -238,6 +235,15 @@ int main(int argc, const char * argv[]) {
     Eigen::Matrix4f T_final = T_initial * T_ICP;
     transformPointCloud(*source, *source_aligned, T_final);
     io::savePLYFileBinary(resultsDirectory + "source_aligned_" + key_name + "_" + des_name + ".ply", *source_aligned);
+    
+    // Compute initial and final L2SQR score
+    registration::TransformationValidationEuclidean<pcl::PointXYZI, pcl::PointXYZI> tve;
+    tve.setMaxRange (0.1);  // 1cm
+    score_ia = tve.validateTransformation (source, target, T_initial);
+    
+    registration::TransformationValidationEuclidean<pcl::PointXYZI, pcl::PointXYZI> tve_final;
+    tve_final.setMaxRange (0.1);  // 1cm
+    score_final = tve.validateTransformation (source, target, T_final);
     
     // Store data in text file
     ofstream alignInfo;
